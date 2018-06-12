@@ -1,0 +1,69 @@
+#Dependencies
+#Install Keras on Tensorflow
+
+
+#Importing Data from Keras
+from keras.datasets import imdb
+
+#Setting vocabulary size to 5000
+vocabulary_size = 5000
+
+#Loadig the dataset and creating train test splits
+(X_train, y_train), (X_test, y_test) = imdb.load_data(num_words = vocabulary_size)
+print('Loaded dataset with {} training samples, {} test samples'.format(len(X_train),
+      len(X_test)))
+
+#priting the sample 9th review in ids
+print('-IMDB review-')
+print(X_train[9])
+print('-label-')
+print(y_train[9])
+
+#Converting ids to actual text
+word2id = imdb.get_word_index()
+id2word = {i: word for word, i in word2id.items()}
+print('---review with words---')
+print([id2word.get(i, ' ') for i in X_train[9]])
+print('---label---')
+print(y_train[9])
+
+#Printing max and min length of the review
+print('Maximum review length: {}'.format(len(max((X_train + X_test), key=len))))
+print('Minimum review length: {}'.format(len(min((X_test + X_test), key=len))))
+
+#Setting max words before training the model
+from keras.preprocessing import sequence
+max_words = 500
+
+#Covering the shorter reviews by adding null values
+X_train = sequence.pad_sequences(X_train, maxlen=max_words)
+X_test = sequence.pad_sequences(X_test, maxlen=max_words)
+
+#Designing the RNN model
+from keras import Sequential
+from keras.layers import Embedding, LSTM, Dense, Dropout
+embedding_size=32
+model=Sequential()
+model.add(Embedding(vocabulary_size, embedding_size, input_length=max_words))
+model.add(LSTM(100))
+model.add(Dense(1, activation='sigmoid'))
+print(model.summary())
+
+#Compiling the model
+model.compile(loss='binary_crossentropy', 
+             optimizer='adam', 
+             metrics=['accuracy'])
+
+#Training RNN Model
+batch_size = 64
+num_epochs = 3
+X_valid, y_valid = X_train[:batch_size], y_train[:batch_size]
+X_train2, y_train2 = X_train[batch_size:], y_train[batch_size:]
+model.fit(X_train2, y_train2, validation_data=(X_valid, y_valid), 
+          batch_size=batch_size, epochs=num_epochs)
+
+#Testing the model on unseen data
+scores = model.evaluate(X_test, y_test, verbose=0)
+print('Test accuracy:', scores[1])
+
+#Reference: https://towardsdatascience.com/a-beginners-guide-on-sentiment-analysis-with-rnn-9e100627c02e
